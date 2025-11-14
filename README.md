@@ -560,6 +560,6 @@ This platform commits to:
 **Together, we're building technology that serves human growth rather than extracting human attention.**
 
 [Explore the Platform →](https://museum-of-impossible-things-portfolio.vercel.app) | [Join the Village →](mailto:keithsoyka@gmail.com) | [Star the Vision ⭐](https://github.com/RogueFoxOne/Museum-Of-Impossible-Things)
-[![Sponsor Keith](https://img.shields.io/badge/Sponsor-💖_Support_My_Work-pink?style=for-the-badge)](https://github.com/sponsors/YourUsername)
+[![Sponsor Keith](https://img.shields.io/badge/Sponsor-💖_Support_My_Work-pink?style=for-the-badge)](https://github.com/sponsors/RogueFoxOne)
 
 </div>
