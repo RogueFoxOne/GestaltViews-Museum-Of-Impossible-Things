@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  name       String?
+  createdAt  DateTime @default(now())
+  conversations Conversation[]
+  spotifyRefreshToken String?  // encrypted storage recommended
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  userId        String
+  title         String?
+  memorySummary  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      Message[]
+  embeddings    Embedding[]
+  user          User      @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String   // user | assistant | system
+  content        String
+  tokens         Int?
+  createdAt      DateTime @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+}
+
+model Embedding {
+  id             String   @id @default(uuid())
+  conversationId String?
+  vector         Json     // use pgvector or external vector DB; stored as JSON if needed
+  meta           Json?
+  createdAt      DateTime @default(now())
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+}

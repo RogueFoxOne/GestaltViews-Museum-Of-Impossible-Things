@@ -1,0 +1,233 @@
+# /backend/services/llm_service.py
+from typing import Dict, List, Optional, Any, Union
+from enum import Enum
+import asyncio
+import logging
+from dataclasses import dataclass
+from adapters.openai_adapter import OpenAIAdapter
+from adapters.anthropic_adapter import AnthropicAdapter
+from adapters.gemini_adapter import GeminiAdapter
+from adapters.huggingface_adapter import HuggingFaceAdapter
+from utils.prompt_templates import PromptTemplateManager
+from utils.response_validator import ResponseValidator
+
+class LLMProvider(str, Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GEMINI = "gemini"
+    HUGGINGFACE = "huggingface"
+    AUTO = "auto"
+
+@dataclass
+class LLMResponse:
+    content: str
+    provider: LLMProvider
+    tokens_used: int
+    processing_time: float
+    confidence_score: float
+    metadata: Dict[str, Any]
+
+class LLMService:
+    def __init__(self):
+        self.adapters: Dict[LLMProvider, Any] = {}
+        self.prompt_manager = PromptTemplateManager()
+        self.response_validator = ResponseValidator()
+        self.logger = logging.getLogger(__name__)
+        
+    async def initialize(self):
+        """Initialize all LLM adapters"""
+        try:
+            self.adapters[LLMProvider.OPENAI] = OpenAIAdapter()
+            self.adapters[LLMProvider.ANTHROPIC] = AnthropicAdapter()
+            self.adapters[LLMProvider.GEMINI] = GeminiAdapter()
+            self.adapters[LLMProvider.HUGGINGFACE] = HuggingFaceAdapter()
+            
+            # Initialize each adapter
+            init_tasks = [adapter.initialize() for adapter in self.adapters.values()]
+            await asyncio.gather(*init_tasks, return_exceptions=True)
+            
+            self.logger.info("LLM Service initialized successfully")
+            
+        except Exception as e:
+            self.logger.error(f"LLM Service initialization failed: {e}")
+            raise
+
+    async def generate_response(
+        self,
+        message: str,
+        context: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        provider: LLMProvider = LLMProvider.AUTO,
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+        stream: bool = False,
+        **kwargs
+    ) -> LLMResponse:
+        """Generate response using specified or auto-selected provider"""
+        
+        # Auto-select provider if needed
+        if provider == LLMProvider.AUTO:
+            provider = await self._select_best_provider(message, context)
+        
+        adapter = self.adapters.get(provider)
+        if not adapter:
+            raise ValueError(f"Provider {provider} not available")
+        
+        # Enhance prompt with consciousness-serving elements
+        enhanced_prompt = self.prompt_manager.enhance_prompt(
+            message=message,
+            context=context,
+            system_prompt=system_prompt,
+            provider=provider
+        )
+        
+        try:
+            # Generate response
+            start_time = asyncio.get_event_loop().time()
+            
+            raw_response = await adapter.generate(
+                prompt=enhanced_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=stream,
+                **kwargs
+            )
+            
+            processing_time = asyncio.get_event_loop().time() - start_time
+            
+            # Validate and enhance response
+            validated_response = await self.response_validator.validate(
+                response=raw_response,
+                context=context,
+                provider=provider
+            )
+            
+            # Calculate consciousness metrics
+            consciousness_score = await self._calculate_consciousness_score(
+                response=validated_response,
+                original_message=message
+            )
+            
+            return LLMResponse(
+                content=validated_response,
+                provider=provider,
+                tokens_used=adapter.get_token_count(validated_response),
+                processing_time=processing_time,
+                confidence_score=consciousness_score,
+                metadata={
+                    "model": adapter.get_model_name(),
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "consciousness_metrics": consciousness_score
+                }
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Response generation failed for {provider}: {e}")
+            
+            # Fallback to alternative provider
+            if provider != LLMProvider.OPENAI:
+                self.logger.info("Attempting fallback to OpenAI")
+                return await self.generate_response(
+                    message=message,
+                    context=context,
+                    system_prompt=system_prompt,
+                    provider=LLMProvider.OPENAI,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=stream
+                )
+            
+            raise
+
+    async def _select_best_provider(self, message: str, context: Optional[str] = None) -> LLMProvider:
+        """Intelligently select the best provider based on request characteristics"""
+        
+        # Analyze message characteristics
+        message_analysis = {
+            "length": len(message),
+            "complexity": await self._assess_complexity(message),
+            "domain": await self._identify_domain(message),
+            "emotional_content": await self._assess_emotional_content(message)
+        }
+        
+        # Provider selection logic
+        if message_analysis["domain"] == "creative":
+            return LLMProvider.ANTHROPIC
+        elif message_analysis["domain"] == "technical":
+            return LLMProvider.OPENAI
+        elif message_analysis["emotional_content"] > 0.7:
+            return LLMProvider.GEMINI
+        elif message_analysis["complexity"] > 0.8:
+            return LLMProvider.ANTHROPIC
+        else:
+            return LLMProvider.OPENAI
+
+    async def synthesize_consensus(
+        self,
+        responses: List[LLMResponse],
+        consensus_analysis: Any,
+        plk_profile: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Synthesize multiple responses into consciousness-serving consensus"""
+        
+        synthesis_prompt = self.prompt_manager.get_synthesis_prompt(
+            responses=[r.content for r in responses],
+            consensus_analysis=consensus_analysis,
+            plk_profile=plk_profile
+        )
+        
+        # Use the highest-performing provider for synthesis
+        best_provider = max(responses, key=lambda r: r.confidence_score).provider
+        
+        synthesis_response = await self.generate_response(
+            message=synthesis_prompt,
+            provider=best_provider,
+            temperature=0.3,  # Lower temperature for synthesis
+            context="Consensus synthesis"
+        )
+        
+        return synthesis_response.content
+
+    async def health_check(self) -> Dict[str, bool]:
+        """Check health of all providers"""
+        health_status = {}
+        
+        for provider, adapter in self.adapters.items():
+            try:
+                await adapter.health_check()
+                health_status[provider.value] = True
+            except Exception:
+                health_status[provider.value] = False
+                
+        return health_status
+
+    async def get_provider_status(self) -> Dict[str, Any]:
+        """Get detailed status of all providers"""
+        status = {}
+        
+        for provider, adapter in self.adapters.items():
+            status[provider.value] = await adapter.get_status()
+            
+        return status
+
+    async def _calculate_consciousness_score(self, response: str, original_message: str) -> float:
+        """Calculate consciousness-serving score for response"""
+        # Implement consciousness scoring logic
+        metrics = {
+            "authenticity": await self._assess_authenticity(response),
+            "empathy": await self._assess_empathy(response),
+            "growth_potential": await self._assess_growth_potential(response),
+            "respect_for_agency": await self._assess_agency_respect(response)
+        }
+        
+        # Weighted average
+        weights = {"authenticity": 0.3, "empathy": 0.3, "growth_potential": 0.25, "respect_for_agency": 0.15}
+        
+        return sum(score * weights[metric] for metric, score in metrics.items())
+
+    async def cleanup(self):
+        """Cleanup resources"""
+        cleanup_tasks = [adapter.cleanup() for adapter in self.adapters.values() if hasattr(adapter, 'cleanup')]
+        await asyncio.gather(*cleanup_tasks, return_exceptions=True)
+        self.logger.info("LLM Service cleaned up")

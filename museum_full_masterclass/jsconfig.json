@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@/components/*": ["frontend/components/*"],
+      "@/lib/*": ["frontend/lib/*"],
+      "@/ui/*": ["frontend/components/ui/*"]
+    }
+  }
+}

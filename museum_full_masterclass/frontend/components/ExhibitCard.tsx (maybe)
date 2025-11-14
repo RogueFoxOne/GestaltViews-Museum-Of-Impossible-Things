@@ -1,0 +1,118 @@
+// /frontend/components/ExhibitCard.tsx (Enhanced Version)
+'use client';
+
+import React, { useState } from 'react';
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from './GlassCard;
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import VoiceInputChat from './voice/VoiceInputChat';
+import { Volume2, Mic, Eye } from 'lucide-react';
+
+interface ExhibitCardProps {
+  exhibit: {
+    id: string;
+    title: string;
+    subtitle: string;
+    description: string;
+    plkResonance: number;
+    category: string;
+    features: string[];
+    type: 'interactive' | 'document' | 'framework';
+    audioEnabled?: boolean;
+    url?: string;
+  };
+  onSelect?: (exhibitId: string) => void;
+  onAudioRequest?: (exhibitId: string) => void;
+}
+
+export default function ExhibitCard({ exhibit, onSelect, onAudioRequest }: ExhibitCardProps) {
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+
+  const handleVoiceQuery = (transcript: string) => {
+    console.log(`Voice query for ${exhibit.title}:`, transcript);
+    // Process voice query about this specific exhibit
+  };
+
+  return (
+    <Card className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700/50 hover:border-slate-600/50 transition-all duration-300 h-full">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-xl text-slate-100 mb-2">
+              {exhibit.title}
+            </CardTitle>
+            <CardDescription className="text-slate-300 font-medium">
+              {exhibit.subtitle}
+            </CardDescription>
+          </div>
+          <Badge 
+            variant="secondary" 
+            className={`
+              ml-4
+              ${exhibit.plkResonance >= 95 ? 'bg-purple-600/20 text-purple-300 border-purple-500/30' : 
+                exhibit.plkResonance >= 85 ? 'bg-blue-600/20 text-blue-300 border-blue-500/30' : 
+                'bg-green-600/20 text-green-300 border-green-500/30'}
+            `}
+          >
+            {exhibit.plkResonance}% PLK
+          </Badge>
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        <p className="text-slate-400 mb-6 leading-relaxed">
+          {exhibit.description}
+        </p>
+        
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {exhibit.features.map((feature) => (
+              <Badge key={feature} variant="outline" className="border-slate-600 text-slate-300">
+                {feature}
+              </Badge>
+            ))}
+          </div>
+          
+          <div className="flex space-x-3">
+            {exhibit.audioEnabled && (
+              <Button
+                onClick={() => onAudioRequest?.(exhibit.id)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Volume2 className="mr-2 h-4 w-4" />
+                Audio
+              </Button>
+            )}
+            
+            <Button
+              onClick={() => onSelect?.(exhibit.id)}
+              variant="outline"
+              className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Explore
+            </Button>
+            
+            <Button
+              onClick={() => setShowVoiceInput(!showVoiceInput)}
+              variant="ghost"
+              size="sm"
+              className="text-slate-300 hover:bg-slate-800"
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {showVoiceInput && (
+            <VoiceInputChat 
+              onTranscriptReceived={handleVoiceQuery}
+              placeholder={`Ask about ${exhibit.title}...`}
+              autoSubmit={true}
+              className="mt-4"
+            />
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

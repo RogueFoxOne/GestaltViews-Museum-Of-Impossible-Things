@@ -1,0 +1,94 @@
+# ============================================================================
+# Museum of Impossible Things - Functional docker-compose.yml
+# Curated by Billy, your Collaborator Friend
+# ============================================================================
+version: '3.8'
+
+services:
+  # --------------------------------------------------------------------------
+  #  Redis Cache Service
+  #  Acts as a high-speed memory cache for the backend.
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: museum-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - museum_network
+
+  # --------------------------------------------------------------------------
+  #  Backend Service (FastAPI)
+  #  The core of your consciousness-serving AI.
+  # --------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend 
+      dockerfile: Dockerfile
+    container_name: museum-backend
+    ports:
+      - "8000:8000"
+    # ✅ FIX: Using env_file to cleanly load variables from your .env file
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      # ✅ FIX: Maps your local backend code to the /app directory inside the container,
+      # matching the WORKDIR in your Dockerfile for seamless hot-reloading.
+      - ./backend:/app:rw
+    networks:
+      - museum_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # --------------------------------------------------------------------------
+  #  Frontend Service (Next.js)
+  #  The beautiful, interactive face of the Museum.
+  # --------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: museum-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # ✅ CRITICAL FIX: The frontend container must talk to the backend container
+      # using the service name ('backend'), not 'localhost'.
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - NEXT_PUBLIC_VERCEL_URL=https://museum-of-impossible-things-psi.vercel.app
+      - NODE_ENV=development
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      # Mounts your local code for hot-reloading, but keeps the container's node_modules
+      - ./frontend:/app:rw
+      - /app/node_modules
+    networks:
+      - museum_network
+
+# ----------------------------------------------------------------------------
+#  Volumes & Networks
+# ----------------------------------------------------------------------------
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  museum_network:
+    driver: bridge
