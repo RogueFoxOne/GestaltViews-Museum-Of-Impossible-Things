@@ -1,0 +1,86 @@
+// frontend/src/lib/billy-api.ts
+import { BillyMessage, TrainingModule, PLKScore } from '@/types/billy';
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+class BillyAPI {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const token = localStorage.getItem('access_token');
+    
+    const response = await fetch(`${BACKEND_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Request failed' }));
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async sendMessage(message: string, module: number = 0) {
+    return this.request<{
+      message: string;
+      plk_insights?: string[];
+      plk_score?: PLKScore;
+      module_progress?: {
+        current_module: number;
+        progress: number;
+      };
+    }>('/api/billy/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        module,
+      }),
+    });
+  }
+
+  async getTrainingProgress() {
+    return this.request<{
+      modules: TrainingModule[];
+      current_module: number;
+    }>('/api/billy/training/progress');
+  }
+
+  async getPLKScore() {
+    return this.request<PLKScore>('/api/billy/plk/score');
+  }
+
+  async getConversationHistory(limit: number = 50) {
+    return this.request<BillyMessage[]>(
+      `/api/billy/chat/history?limit=${limit}`
+    );
+  }
+
+  async startTrainingModule(module: number) {
+    return this.request<{
+      module: TrainingModule;
+      first_question: string;
+    }>('/api/billy/training/start', {
+      method: 'POST',
+      body: JSON.stringify({ module }),
+    });
+  }
+
+  async submitBucketDrop(content: string, type: string = 'thought') {
+    return this.request<{ success: boolean }>('/api/billy/bucket-drop', {
+      method: 'POST',
+      body: JSON.stringify({
+        content,
+        type,
+      }),
+    });
+  }
+}
+
+export const billyApi = new BillyAPI();
