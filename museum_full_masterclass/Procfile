@@ -1,1 +1,1 @@
-web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+web: uvicorn museum_full_masterclass.app.main:app --host 0.0.0.0 --port $PORT
