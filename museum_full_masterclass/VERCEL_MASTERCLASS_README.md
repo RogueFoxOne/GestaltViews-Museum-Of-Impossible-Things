@@ -19,5 +19,6 @@ Essential env vars (set in Vercel/Supabase):
 Quick steps:
 1. Push repo to GitHub and connect Vercel project.
 2. Set environment variables in Vercel.
-3. For Prisma: run `prisma generate` and push migrations to Supabase.
-4. Deploy and test endpoints.
+3. Set the Vercel project root to `museum_full_masterclass/frontend` so Next.js builds separately from the Python function at the repo root.
+4. For Prisma: run `prisma generate` and push migrations to Supabase.
+5. Deploy and test endpoints.
