@@ -1,1 +1,1 @@
-from museum_full_masterclass.app.main import app
+from museum_full_masterclass.main import app
