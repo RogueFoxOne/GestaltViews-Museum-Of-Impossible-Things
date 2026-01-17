@@ -16,12 +16,17 @@ def require_api_key(x_api_key: str = Header(None, alias="X-API-Key")):
 def get_engine() -> CreationCornerEngine:
     return CreationCornerEngine()
 
-@router.post("/synthesize", response_model=CreationCornerSynthesizeResponse, dependencies=[Depends(require_api_key)])
+@router.post(
+    "/synthesize",
+    response_model=CreationCornerSynthesizeResponse,
+    dependencies=[Depends(require_api_key)],
+    operation_id="synthesizeArtifact",
+)
 def synthesize(req: CreationCornerSynthesizeRequest, engine: CreationCornerEngine = Depends(get_engine)):
     artifact = engine.synthesize(req)
     return CreationCornerSynthesizeResponse(artifact=artifact)
 
-@router.get("/types", dependencies=[Depends(require_api_key)])
+@router.get("/types", dependencies=[Depends(require_api_key)], operation_id="getCreationCornerTypes")
 def get_types():
     return {
         "artifact_types": [
