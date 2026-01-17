@@ -21,12 +21,22 @@ def get_engine() -> LightningBoltEngine:
     store = SQLiteBoltStore(Path(db_path))
     return LightningBoltEngine(store=store)
 
-@router.post("/capture", response_model=LightningBoltCaptureResponse, dependencies=[Depends(require_api_key)])
+@router.post(
+    "/capture",
+    response_model=LightningBoltCaptureResponse,
+    dependencies=[Depends(require_api_key)],
+    operation_id="captureLightningBolt",
+)
 def capture_lightning_bolt(req: LightningBoltCaptureRequest, engine: LightningBoltEngine = Depends(get_engine)):
     bolt = engine.capture(req)
     return LightningBoltCaptureResponse(bolt=bolt)
 
-@router.get("/list", response_model=LightningBoltListResponse, dependencies=[Depends(require_api_key)])
+@router.get(
+    "/list",
+    response_model=LightningBoltListResponse,
+    dependencies=[Depends(require_api_key)],
+    operation_id="listLightningBolts",
+)
 def list_lightning_bolts(
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = Query(None),
