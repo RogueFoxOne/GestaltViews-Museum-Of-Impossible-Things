@@ -1,4 +1,4 @@
 {
-  "builds": [{ "src": "museum_full_masterclass/api/index.py", "use": "@vercel/python" }],
-  "routes": [{ "src": "/(.*)", "dest": "museum_full_masterclass/api/index.py" }]
+  "builds": [{ "src": "api/index.py", "use": "@vercel/python" }],
+  "routes": [{ "src": "/api/(.*)", "dest": "api/index.py" }]
 }
