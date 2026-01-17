@@ -1,0 +1,2 @@
+# Exclude Next.js-style route handlers kept alongside Python API code.
+api/**/*.ts

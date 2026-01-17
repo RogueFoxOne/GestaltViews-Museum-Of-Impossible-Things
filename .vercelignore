@@ -1,0 +1,2 @@
+# Exclude backend Next.js-style route handlers from Vercel serverless builds.
+museum_full_masterclass/backend/api/**/*.ts
